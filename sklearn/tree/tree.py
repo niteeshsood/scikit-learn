@@ -325,7 +325,6 @@ class BaseDecisionTree(six.with_metaclass(ABCMeta, BaseEstimator)):
                                                 self.presort)
 
         self.tree_ = Tree(self.n_features_, self.n_classes_, self.n_outputs_)
-
         # Use BestFirst if max_leaf_nodes given; use DepthFirst otherwise
         if max_leaf_nodes < 0:
             builder = DepthFirstTreeBuilder(splitter, min_samples_split,
@@ -733,7 +732,8 @@ class SeabedDecisionTreeClassifier(BaseDecisionTree, ClassifierMixin):
                                                 self.presort)
 
         '''
-        criterion = self.criterion
+        criterion = None #Fix This
+        
         splitter = self.splitter
         self.tree_ = Tree(self.n_features_, self.n_classes_, self.n_outputs_)
         builder = SeabedDepthFirstTreeBuilder(splitter, min_samples_split,

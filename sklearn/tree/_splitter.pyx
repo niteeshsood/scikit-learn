@@ -51,6 +51,195 @@ cdef inline void _init_split(SplitRecord* self, SIZE_t start_pos) nogil:
     self.threshold = 0.
     self.improvement = -INFINITY
 
+cdef class SeabedSplitter:
+    """Abstract splitter class.
+
+    Splitters are called by tree builders to find the best splits on both
+    sparse and dense data, one split at a time.
+    """
+
+    def __cinit__(self, Criterion criterion, SIZE_t max_features,
+                  SIZE_t min_samples_leaf, double min_weight_leaf,
+                  object random_state, bint presort):
+        """
+        Parameters
+        ----------
+        criterion : Criterion
+            The criterion to measure the quality of a split.
+
+        max_features : SIZE_t
+            The maximal number of randomly selected features which can be
+            considered for a split.
+
+        min_samples_leaf : SIZE_t
+            The minimal number of samples each leaf can have, where splits
+            which would result in having less samples in a leaf are not
+            considered.
+
+        min_weight_leaf : double
+            The minimal weight each leaf can have, where the weight is the sum
+            of the weights of each sample in it.
+
+        random_state : object
+            The user inputted random state to be used for pseudo-randomness
+        """
+
+        self.criterion = criterion
+
+        self.samples = NULL
+        self.n_samples = 0
+        self.features = NULL
+        self.n_features = 0
+        self.feature_values = NULL
+
+        self.y = NULL
+        self.y_stride = 0
+        self.sample_weight = NULL
+
+        self.max_features = max_features
+        self.min_samples_leaf = min_samples_leaf
+        self.min_weight_leaf = min_weight_leaf
+        self.random_state = random_state
+        self.presort = presort
+
+    def __dealloc__(self):
+        """Destructor."""
+
+        free(self.samples)
+        free(self.features)
+        free(self.constant_features)
+        free(self.feature_values)
+
+    def __getstate__(self):
+        return {}
+
+    def __setstate__(self, d):
+        pass
+
+    cdef int init(self,
+                   object X,
+                   np.ndarray[DOUBLE_t, ndim=2, mode="c"] y,
+                   DOUBLE_t* sample_weight,
+                   np.ndarray X_idx_sorted=None) except -1:
+        """Initialize the splitter.
+
+        Take in the input data X, the target Y, and optional sample weights.
+
+        Returns -1 in case of failure to allocate memory (and raise MemoryError)
+        or 0 otherwise.
+
+        Parameters
+        ----------
+        X : object
+            This contains the inputs. Usually it is a 2d numpy array.
+
+        y : numpy.ndarray, dtype=DOUBLE_t
+            This is the vector of targets, or true labels, for the samples
+
+        sample_weight : numpy.ndarray, dtype=DOUBLE_t (optional)
+            The weights of the samples, where higher weighted samples are fit
+            closer than lower weight samples. If not provided, all samples
+            are assumed to have uniform weight.
+        """
+
+        self.rand_r_state = self.random_state.randint(0, RAND_R_MAX)
+        cdef SIZE_t n_samples = X.shape[0]
+
+        # Create a new array which will be used to store nonzero
+        # samples from the feature of interest
+        cdef SIZE_t* samples = safe_realloc(&self.samples, n_samples)
+
+        cdef SIZE_t i, j
+        cdef double weighted_n_samples = 0.0
+        j = 0
+
+        for i in range(n_samples):
+            # Only work with positively weighted samples
+            if sample_weight == NULL or sample_weight[i] != 0.0:
+                samples[j] = i
+                j += 1
+
+            if sample_weight != NULL:
+                weighted_n_samples += sample_weight[i]
+            else:
+                weighted_n_samples += 1.0
+
+        # Number of samples is number of positively weighted samples
+        self.n_samples = j
+        self.weighted_n_samples = weighted_n_samples
+
+        cdef SIZE_t n_features = X.shape[1]
+        cdef SIZE_t* features = safe_realloc(&self.features, n_features)
+
+        for i in range(n_features):
+            features[i] = i
+
+        self.n_features = n_features
+
+        safe_realloc(&self.feature_values, n_samples)
+        safe_realloc(&self.constant_features, n_features)
+
+        self.y = <DOUBLE_t*> y.data
+        self.y_stride = <SIZE_t> y.strides[0] / <SIZE_t> y.itemsize
+
+        self.sample_weight = sample_weight
+        return 0
+
+    cdef int node_reset(self, SIZE_t start, SIZE_t end,
+                        double* weighted_n_node_samples) nogil except -1:
+        """Reset splitter on node samples[start:end].
+
+        Returns -1 in case of failure to allocate memory (and raise MemoryError)
+        or 0 otherwise.
+
+        Parameters
+        ----------
+        start : SIZE_t
+            The index of the first sample to consider
+        end : SIZE_t
+            The index of the last sample to consider
+        weighted_n_node_samples : numpy.ndarray, dtype=double pointer
+            The total weight of those samples
+        """
+
+        self.start = start
+        self.end = end
+
+        self.criterion.init(self.y,
+                            self.y_stride,
+                            self.sample_weight,
+                            self.weighted_n_samples,
+                            self.samples,
+                            start,
+                            end)
+
+        weighted_n_node_samples[0] = self.criterion.weighted_n_node_samples
+        return 0
+
+    cdef int node_split(self, double impurity, SplitRecord* split,
+                        SIZE_t* n_constant_features) nogil except -1:
+        """Find the best split on node samples[start:end].
+
+        This is a placeholder method. The majority of computation will be done
+        here.
+
+        It should return -1 upon errors.
+        """
+
+        pass
+
+    cdef void node_value(self, double* dest) nogil:
+        """Copy the value of node samples[start:end] into dest."""
+
+        self.criterion.node_value(dest)
+
+    cdef double node_impurity(self) nogil:
+        """Return the impurity of the current node."""
+
+        return self.criterion.node_impurity()
+
+
+
 cdef class Splitter:
     """Abstract splitter class.
 
