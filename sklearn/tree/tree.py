@@ -39,6 +39,7 @@ from ..exceptions import NotFittedError
 from ._criterion import Criterion
 from ._splitter import Splitter
 from ._tree import DepthFirstTreeBuilder
+from ._tree import SeabedDepthFirstTreeBuilder
 from ._tree import BestFirstTreeBuilder
 from ._tree import Tree
 from . import _tree, _splitter, _criterion
@@ -47,7 +48,7 @@ __all__ = ["DecisionTreeClassifier",
            "DecisionTreeRegressor",
            "ExtraTreeClassifier",
            "ExtraTreeRegressor",
-           "Seabed"]
+           "SeabedDecisionTreeClassifier"]
 
 
 # =============================================================================
@@ -304,7 +305,6 @@ class BaseDecisionTree(six.with_metaclass(ABCMeta, BaseEstimator)):
 
         # Build tree
         criterion = self.criterion
-        print criterion #min_weight_leaf
         if not isinstance(criterion, Criterion):
             if is_classification:
                 criterion = CRITERIA_CLF[self.criterion](self.n_outputs_,
@@ -497,7 +497,7 @@ class BaseDecisionTree(six.with_metaclass(ABCMeta, BaseEstimator)):
 # Public estimators
 # =============================================================================
 
-class Seabed(BaseDecisionTree, ClassifierMixin):
+class SeabedDecisionTreeClassifier(BaseDecisionTree, ClassifierMixin):
     
     def __init__(self,
                  criterion="gini",
@@ -512,7 +512,7 @@ class Seabed(BaseDecisionTree, ClassifierMixin):
                  min_impurity_split=1e-7,
                  class_weight=None,
                  presort=False):
-        super(Seabed, self).__init__(
+        super(SeabedDecisionTreeClassifier, self).__init__(
             criterion=criterion,
             splitter=splitter,
             max_depth=max_depth,
@@ -637,9 +637,6 @@ class Seabed(BaseDecisionTree, ClassifierMixin):
                 max_features = 0
 
         self.max_features_ = max_features
-        '''
-        print 'I am here'
-        '''
         if len(y) != n_samples:
             raise ValueError("Number of labels=%d does not match "
                              "number of samples=%d" % (len(y), n_samples))
@@ -675,7 +672,6 @@ class Seabed(BaseDecisionTree, ClassifierMixin):
                 sample_weight = sample_weight * expanded_class_weight
             else:
                 sample_weight = expanded_class_weight
-
         '''
         # Set min_weight_leaf from min_weight_fraction_leaf
         if sample_weight is None:
@@ -717,10 +713,7 @@ class Seabed(BaseDecisionTree, ClassifierMixin):
                              ".shape = {})".format(X.shape,
                                                    X_idx_sorted.shape))
 
-        '''
-        '''
         # Build tree
-        criterion = self.criterion
         if not isinstance(criterion, Criterion):
             if is_classification:
                 criterion = CRITERIA_CLF[self.criterion](self.n_outputs_,
@@ -731,7 +724,6 @@ class Seabed(BaseDecisionTree, ClassifierMixin):
 
         SPLITTERS = SPARSE_SPLITTERS if issparse(X) else DENSE_SPLITTERS
 
-        splitter = self.splitter
         if not isinstance(self.splitter, Splitter):
             splitter = SPLITTERS[self.splitter](criterion,
                                                 self.max_features_,
@@ -740,14 +732,19 @@ class Seabed(BaseDecisionTree, ClassifierMixin):
                                                 random_state,
                                                 self.presort)
 
+        '''
+        criterion = self.criterion
+        splitter = self.splitter
         self.tree_ = Tree(self.n_features_, self.n_classes_, self.n_outputs_)
+        builder = SeabedDepthFirstTreeBuilder(splitter, min_samples_split,
+                                        min_samples_leaf,
+                                        min_weight_leaf,
+                                        max_depth, self.min_impurity_split)
+        #builder.build(self.tree_, X, y, sample_weight, X_idx_sorted)
+        '''
 
         # Use BestFirst if max_leaf_nodes given; use DepthFirst otherwise
         if max_leaf_nodes < 0:
-            builder = DepthFirstTreeBuilder(splitter, min_samples_split,
-                                            min_samples_leaf,
-                                            min_weight_leaf,
-                                            max_depth, self.min_impurity_split)
         else:
             builder = BestFirstTreeBuilder(splitter, min_samples_split,
                                            min_samples_leaf,
@@ -756,14 +753,14 @@ class Seabed(BaseDecisionTree, ClassifierMixin):
                                            max_leaf_nodes,
                                            self.min_impurity_split)
 
-        builder.build(self.tree_, X, y, sample_weight, X_idx_sorted)
 
         if self.n_outputs_ == 1:
             self.n_classes_ = self.n_classes_[0]
             self.classes_ = self.classes_[0]
-
         return self
+
         ''' 
+        
         print 'Okay'
         return self
     def findNumFeatures(self, X):
