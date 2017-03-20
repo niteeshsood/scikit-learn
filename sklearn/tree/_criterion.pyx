@@ -39,11 +39,12 @@ cdef class SeabedCriterion:
     """
 
     def __dealloc__(self):
-        """Destructor."""
+        """Destructor.
 
         free(self.sum_total)
         free(self.sum_left)
         free(self.sum_right)
+        """
 
     def __getstate__(self):
         return {}
@@ -51,9 +52,13 @@ cdef class SeabedCriterion:
     def __setstate__(self, d):
         pass
 
-    cdef int init(self, DOUBLE_t* y, SIZE_t y_stride, DOUBLE_t* sample_weight,
+    cdef int init(self, dict X) nogil except -1:
+        '''
+        DOUBLE_t* y, SIZE_t y_stride, DOUBLE_t* sample_weight,
                   double weighted_n_samples, SIZE_t* samples, SIZE_t start,
                   SIZE_t end) nogil except -1:
+        '''
+      
         """Placeholder for a method which will initialize the criterion.
 
         Returns -1 in case of failure to allocate memory (and raise MemoryError)
@@ -249,7 +254,7 @@ cdef class SeabedClassificationCriterion(SeabedCriterion):
         self.n_classes = NULL
 
         safe_realloc(&self.n_classes, n_outputs)
-
+        '''
         cdef SIZE_t k = 0
         cdef SIZE_t sum_stride = 0
 
@@ -272,6 +277,7 @@ cdef class SeabedClassificationCriterion(SeabedCriterion):
                 self.sum_left == NULL or
                 self.sum_right == NULL):
             raise MemoryError()
+        '''
 
     def __dealloc__(self):
         """Destructor."""
@@ -283,9 +289,12 @@ cdef class SeabedClassificationCriterion(SeabedCriterion):
                  sizet_ptr_to_ndarray(self.n_classes, self.n_outputs)),
                 self.__getstate__())
 
-    cdef int init(self, DOUBLE_t* y, SIZE_t y_stride,
+    cdef int init(self, dict X) nogil except -1: 
+      
+        '''DOUBLE_t* y, SIZE_t y_stride,
                   DOUBLE_t* sample_weight, double weighted_n_samples,
                   SIZE_t* samples, SIZE_t start, SIZE_t end) nogil except -1:
+        '''
         """Initialize the criterion at node samples[start:end] and
         children samples[start:start] and samples[start:end].
 
@@ -311,6 +320,7 @@ cdef class SeabedClassificationCriterion(SeabedCriterion):
             The last sample to use in the mask
         """
 
+        '''
         self.y = y
         self.y_stride = y_stride
         self.sample_weight = sample_weight
@@ -352,6 +362,8 @@ cdef class SeabedClassificationCriterion(SeabedCriterion):
 
         # Reset to pos=start
         self.reset()
+        '''
+        #self._X = X
         return 0
 
     cdef int reset(self) nogil except -1:
@@ -409,6 +421,8 @@ cdef class SeabedClassificationCriterion(SeabedCriterion):
         return 0
 
     cdef int update(self, SIZE_t new_pos) nogil except -1:
+        #TODO
+        
         """Updated statistics by moving samples[pos:new_pos] to the left child.
 
         Returns -1 in case of failure to allocate memory (and raise MemoryError)
@@ -420,6 +434,7 @@ cdef class SeabedClassificationCriterion(SeabedCriterion):
             The new ending position for which to move samples from the right
             child to the left child.
         """
+        ''' 
         cdef DOUBLE_t* y = self.y
         cdef SIZE_t pos = self.pos
         cdef SIZE_t end = self.end
@@ -488,6 +503,7 @@ cdef class SeabedClassificationCriterion(SeabedCriterion):
             sum_total += self.sum_stride
 
         self.pos = new_pos
+        ''' 
         return 0
 
     cdef double node_impurity(self) nogil:
@@ -538,7 +554,6 @@ cdef class SeabedGini(SeabedClassificationCriterion):
         """Evaluate the impurity of the current node, i.e. the impurity of
         samples[start:end] using the Gini criterion."""
 
-
         cdef SIZE_t* n_classes = self.n_classes
         cdef double* sum_total = self.sum_total
         cdef double gini = 0.0
@@ -546,6 +561,7 @@ cdef class SeabedGini(SeabedClassificationCriterion):
         cdef double count_k
         cdef SIZE_t k
         cdef SIZE_t c
+
 
         for k in range(self.n_outputs):
             sq_count = 0.0

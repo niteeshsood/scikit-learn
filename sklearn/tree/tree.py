@@ -763,8 +763,27 @@ class SeabedDecisionTreeClassifier(BaseDecisionTree, ClassifierMixin):
         
         print 'Okay'
         return self
+    
     def findNumFeatures(self, X):
-        return (5,2,[2],[np.array([0,1])], 5) #TODO
+        """Calculates some of the meta data that we will need to interface with the 
+        original scikit code
+        """
+        #TODO:RENAME
+
+        feature_set = set()
+        class_set = set()
+        for key in X:
+          cat_vars = key.split(',')
+          cats = [x for x in cat_vars][:-1]
+          class_set.add(cat_vars[-1]) 
+          for j in cats:
+            feature_set.add(j)
+        n_classes = list()
+        l_cl_set = len(class_set)
+        n_class.append(l_cl_set)
+        l_ft_set = len(feature_set)
+        
+        return (l_ft_set, l_cl_set, n_class, [np.array(range(l_cl_set))], l_ft_set) #TODO
 
     def predict_proba(self, X, check_input=True):
         """Predict class probabilities of the input samples X.

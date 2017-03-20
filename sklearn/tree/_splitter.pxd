@@ -81,10 +81,11 @@ cdef class SeabedSplitter:
     # This allows optimization with depth-based tree building.
 
     # Methods
-    cdef int init(self, object X, np.ndarray y,
+    cdef int init(self, dict X) except -1 
+    '''object X, np.ndarray y,
                   DOUBLE_t* sample_weight,
                   np.ndarray X_idx_sorted=*) except -1
-
+    '''
     cdef int node_reset(self, SIZE_t start, SIZE_t end,
                         double* weighted_n_node_samples) nogil except -1
 
@@ -96,6 +97,7 @@ cdef class SeabedSplitter:
     cdef void node_value(self, double* dest) nogil
 
     cdef double node_impurity(self) nogil
+
 cdef class Splitter:
     # The splitter searches in the input space for a feature and a threshold
     # to split the samples samples[start:end].

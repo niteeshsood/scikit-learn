@@ -117,10 +117,14 @@ cdef class SeabedSplitter:
         pass
 
     cdef int init(self,
-                   object X,
-                   np.ndarray[DOUBLE_t, ndim=2, mode="c"] y,
-                   DOUBLE_t* sample_weight,
-                   np.ndarray X_idx_sorted=None) except -1:
+                   dict X) except -1:
+
+        '''
+                     object X,
+                     np.ndarray[DOUBLE_t, ndim=2, mode="c"] y,
+                     DOUBLE_t* sample_weight,
+                     np.ndarray X_idx_sorted=None) except -1:
+        '''
         """Initialize the splitter.
 
         Take in the input data X, the target Y, and optional sample weights.
@@ -142,6 +146,7 @@ cdef class SeabedSplitter:
             are assumed to have uniform weight.
         """
 
+        ''' 
         self.rand_r_state = self.random_state.randint(0, RAND_R_MAX)
         cdef SIZE_t n_samples = X.shape[0]
 
@@ -183,6 +188,8 @@ cdef class SeabedSplitter:
         self.y_stride = <SIZE_t> y.strides[0] / <SIZE_t> y.itemsize
 
         self.sample_weight = sample_weight
+
+        ''' 
         return 0
 
     cdef int node_reset(self, SIZE_t start, SIZE_t end,
