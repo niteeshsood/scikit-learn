@@ -24,6 +24,7 @@ cdef class SeabedCriterion:
     # such as the mean in regression and class probabilities in classification.
 
     # Internal structures
+    cdef dict _X 
     cdef DOUBLE_t* y                     # Values of y
     cdef SIZE_t y_stride                 # Stride in y (since n_outputs >= 1)
     cdef DOUBLE_t* sample_weight         # Sample weights

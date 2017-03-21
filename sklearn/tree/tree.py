@@ -307,6 +307,8 @@ class BaseDecisionTree(six.with_metaclass(ABCMeta, BaseEstimator)):
         criterion = self.criterion
         if not isinstance(criterion, Criterion):
             if is_classification:
+                print self.n_outputs_
+                print self.n_classes_
                 criterion = CRITERIA_CLF[self.criterion](self.n_outputs_,
                                                          self.n_classes_)
             else:
@@ -314,7 +316,6 @@ class BaseDecisionTree(six.with_metaclass(ABCMeta, BaseEstimator)):
                                                          n_samples)
 
         SPLITTERS = SPARSE_SPLITTERS if issparse(X) else DENSE_SPLITTERS
-
         splitter = self.splitter
         if not isinstance(self.splitter, Splitter):
             splitter = SPLITTERS[self.splitter](criterion,
@@ -742,7 +743,6 @@ class SeabedDecisionTreeClassifier(BaseDecisionTree, ClassifierMixin):
                                         max_depth, self.min_impurity_split)
         #builder.build(self.tree_, X, y, sample_weight, X_idx_sorted)
         '''
-
         # Use BestFirst if max_leaf_nodes given; use DepthFirst otherwise
         if max_leaf_nodes < 0:
         else:
@@ -760,7 +760,6 @@ class SeabedDecisionTreeClassifier(BaseDecisionTree, ClassifierMixin):
         return self
 
         ''' 
-        
         print 'Okay'
         return self
     
@@ -782,8 +781,8 @@ class SeabedDecisionTreeClassifier(BaseDecisionTree, ClassifierMixin):
         l_cl_set = len(class_set)
         n_class.append(l_cl_set)
         l_ft_set = len(feature_set)
-        
-        return (l_ft_set, l_cl_set, n_class, [np.array(range(l_cl_set))], l_ft_set) #TODO
+        #n_outputs is always 1 in our scheme 
+        return (l_ft_set, 1, n_class, [np.array(range(l_cl_set))], l_ft_set) #TODO
 
     def predict_proba(self, X, check_input=True):
         """Predict class probabilities of the input samples X.

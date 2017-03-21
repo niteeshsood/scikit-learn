@@ -581,6 +581,15 @@ cdef class BestSplitter(BaseDenseSplitter):
                  n_visited_features <= n_found_constants + n_drawn_constants)):
 
             n_visited_features += 1
+            '''
+            with gil:
+              print 'Stuff'
+              print n_total_constants
+              print n_visited_features
+              print max_features
+              print n_found_constants
+              print n_drawn_constants 
+            '''
 
             # Loop invariant: elements of features in
             # - [:n_drawn_constant[ holds drawn and known constant features;
@@ -596,7 +605,7 @@ cdef class BestSplitter(BaseDenseSplitter):
             # Draw a feature at random
             f_j = rand_int(n_drawn_constants, f_i - n_found_constants,
                            random_state)
-
+            
             if f_j < n_known_constants:
                 # f_j in the interval [n_drawn_constants, n_known_constants[
                 tmp = features[f_j]

@@ -21,6 +21,7 @@ from libc.stdlib cimport free
 from libc.string cimport memcpy
 from libc.string cimport memset
 from libc.math cimport fabs
+from libc.stdint cimport int64_t
 
 import numpy as np
 cimport numpy as np
@@ -363,7 +364,8 @@ cdef class SeabedClassificationCriterion(SeabedCriterion):
         # Reset to pos=start
         self.reset()
         '''
-        #self._X = X
+        with gil:
+            self._X = X
         return 0
 
     cdef int reset(self) nogil except -1:
@@ -554,10 +556,20 @@ cdef class SeabedGini(SeabedClassificationCriterion):
         """Evaluate the impurity of the current node, i.e. the impurity of
         samples[start:end] using the Gini criterion."""
 
-        cdef SIZE_t* n_classes = self.n_classes
-        cdef double* sum_total = self.sum_total
+        cdef int64_t* all_counts  
+        cdef SIZE_t i 
         cdef double gini = 0.0
         cdef double sq_count
+        i = 0
+        with gil:
+          for key in self._X:
+            all_counts[i] = self._X[key]
+            i+=1
+            print key
+       
+        
+        cdef SIZE_t* n_classes = self.n_classes
+        cdef double* sum_total = self.sum_total
         cdef double count_k
         cdef SIZE_t k
         cdef SIZE_t c
@@ -946,7 +958,16 @@ cdef class ClassificationCriterion(Criterion):
             for k in range(self.n_outputs):
                 c = <SIZE_t> y[i * y_stride + k]
                 sum_total[k * self.sum_stride + c] += w
-
+                ''' 
+                with gil:
+                  
+                  print 'Criterion'
+                  print k * self.sum_stride + c
+                  print c 
+                  print y_stride
+                  print i * y_stride
+                  print sum_total[k * self.sum_stride + c]
+                ''' 
             self.weighted_n_node_samples += w
 
         # Reset to pos=start
@@ -1228,14 +1249,17 @@ cdef class Gini(ClassificationCriterion):
 
         for k in range(self.n_outputs):
             sq_count = 0.0
-
             for c in range(n_classes[k]):
                 count_k = sum_total[c]
+                with gil:
+                  print count_k
                 sq_count += count_k * count_k
 
             gini += 1.0 - sq_count / (self.weighted_n_node_samples *
                                       self.weighted_n_node_samples)
 
+            #with gil:
+            #  print self.sum_stride
             sum_total += self.sum_stride
 
         return gini / self.n_outputs
